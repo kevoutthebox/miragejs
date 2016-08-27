@@ -10,6 +10,12 @@ const favicon = require('serve-favicon');
 const path = require('path')
 const startSockets = require('./sockLogic.js');
 
+// app.use(function(req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   next();
+// });
+
 var env = process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 var server = http.createServer(app).listen(8000);
@@ -28,4 +34,3 @@ app.use(favicon(path.join(__dirname,'public','favicon.ico')));
 var httpsServer = https.createServer(options, app).listen(port);
 
 startSockets(server);
-
