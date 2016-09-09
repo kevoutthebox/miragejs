@@ -1,5 +1,5 @@
-module.exports = function (server) {
-'use strict';
+module.exports = function(server) {
+  'use strict';
   const io = require('socket.io').listen(server);
 
   const connections = [];
@@ -27,9 +27,12 @@ module.exports = function (server) {
     connections.push(socket);
     console.log(socket.id + ' joined!')
 
-
     //disconnecting users
-    socket.on('disconnect', function() {
+    socket.once('disconnect', function() {
+      console.log('disconnect triggered')
+
+      // console.log('room:  ', rooms[0])
+
       let member,
         room,
         otherMem;
@@ -42,6 +45,7 @@ module.exports = function (server) {
           if (rooms[idx].members.length > 0) {
             rooms[idx].members.forEach((el, id) => {
               io.to(el.id).emit('updateChatters', member);
+              socket.disconnect();
             })
           }
 
@@ -51,14 +55,16 @@ module.exports = function (server) {
 
       })
 
+      // console.log('after going through and disconnecting sockets',rooms)
       connections.splice(connections.indexOf(socket), 1);
-      console.log(socket.id + ' left room ' + member.roomId)
-      socket.disconnect();
+      // console.log(socket.id + ' left room ' + member.roomId)
 
+      // console.log('room:  ', rooms[0])
     })
 
     //join room logic
     socket.on('joinRoom', (payload) => {
+
       payload = JSON.parse(payload);
       let roomCheck = rooms.filter(room => room.id === payload);
       if (roomCheck.length > 0) {
@@ -70,6 +76,7 @@ module.exports = function (server) {
       } else {
         io.to(socket.id).emit('process', JSON.stringify(true));
       }
+
     })
 
     //initiate
@@ -95,37 +102,32 @@ module.exports = function (server) {
         existingRoom[0].members.forEach((ele, idx) => {
           io.to(ele.id).emit('readyConnect', JSON.stringify('both connected'));
         })
-
       }
-
       io.to(socket.id).emit('initiated', JSON.stringify(member));
 
     });
 
-    socket.on('initial', function(payload) {
-      payload = JSON.parse(payload)
-      let sharedRoom = rooms.filter(room => room.id === payload.roomId)[0];
-      sharedRoom.members[0].signalId = payload.signal
-      io.to(sharedRoom.members[0].id).emit('initialConnected', JSON.stringify(payload));
-    });
+    //beginning of signaling
+    socket.on('message', function(payload) {
+      console.log(payload.data.type)
 
-    socket.on('second', function(payload) {
-      payload = JSON.parse(payload);
-      let sharedRoom = rooms.filter(room => room.id === payload);
-      let initialClientSig = sharedRoom[0].members[0].signalId;
-      let secondClientSockId = sharedRoom[0].members[1].id;
-      io.to(secondClientSockId).emit('secondPart2', JSON.stringify(initialClientSig)); //remember socket.id
-    });
+      let sharedRoom = rooms.filter(room => room.id === payload.roomID)[0];
 
-    socket.on('third', function(payload) {
-      payload = JSON.parse(payload);
-      let sharedRoom = rooms.filter(room => room.id === payload.roomId);
-      let secondClient = sharedRoom[0].members.filter(client => !client.signalId);
-      let initialClient = sharedRoom[0].members.filter(client => client.signalId);
-      secondClient[0].signalId = payload.signal;
-      io.to(initialClient[0].id).emit('thirdPart2', JSON.stringify(secondClient[0].signalId));
-    });
+      // not used for anything yet but maybe for chatroom fallback?
+      // if (payload.who === 'all') {
+      //   sharedRoom.members.forEach((ele, idx) => {
+      //     io.to(ele.id).emit('message', payload.data);
+      //   });
+      // } else
+      if (payload.who === 'other') {
+        sharedRoom.members.forEach((ele, idx) => {
+          if (ele.id !== socket.id) {
+            io.to(ele.id).emit('message', payload.data);
+          }
+        });
+      }
+
+    }); //end of signaling
 
   })
-}
-
+};
