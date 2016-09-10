@@ -339,10 +339,10 @@ function clearFunc(animeSt, mediaSt) {
 function toggleZindex() {
   // toggle Z index of non MRG elements to have Mirage component always show
   // only if can access dom elements
-  if (document.querySelectorAll){
+  if (document.querySelectorAll) {
     let domElements = document.body.getElementsByTagName('*');
     for (let i = 0; i < domElements.length; i++) {
-      if (domElements[i].id.substring(0,3)!=="MRG"){
+      if (domElements[i].id.substring(0,3)!=="MRG") {
         //give fixed elements z index of 1 and non fixed elements z index of -1 to keep positionality
         window.getComputedStyle(domElements[i]).getPropertyValue('position')==='fixed' ? domElements[i].classList.toggle('notMirageFixed') : domElements[i].classList.toggle('notMirage');
       }
